@@ -93,7 +93,8 @@ if [ -n "$ROOT_SPAN_ID" ]; then
 
         if [ -f "$ANALYZE_SCRIPT" ]; then
             cd "$PROJECT_DIR" 2>/dev/null || cd "$HOME"
-            uv run python "$ANALYZE_SCRIPT" --learn --session-id "$ROOT_SPAN_ID" \
+            # Use --with to ensure all dependencies available (requests sometimes missing)
+            uv run --with requests --with braintrust python "$ANALYZE_SCRIPT" --learn --session-id "$ROOT_SPAN_ID" \
                 >> "$HOME/.claude/cache/learn.log" 2>&1
         fi
     ) &

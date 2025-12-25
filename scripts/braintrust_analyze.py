@@ -1141,9 +1141,10 @@ async def learn_from_session(project_id: str, api_key: str, session_id: str | No
     trace_lines.append("")
 
     # Dynamic budget calculation (accounting for hierarchical context)
-    # 272k tokens ≈ 800k chars (conservative 3 chars/token)
-    TOTAL_CHARS = 800_000
-    RESERVE_CHARS = 100_000  # prompt template + response headroom
+    # Braintrust API disconnects above ~300K chars empirically (see learn.log)
+    # 308K succeeded, 340K+ failed with "Server disconnected"
+    TOTAL_CHARS = 250_000  # Conservative limit below API threshold
+    RESERVE_CHARS = 50_000  # prompt template + response headroom
     AVAILABLE_CHARS = TOTAL_CHARS - RESERVE_CHARS - hierarchical_chars
     MIN_PER_FIELD = 1500
     MAX_PER_FIELD = 8000
