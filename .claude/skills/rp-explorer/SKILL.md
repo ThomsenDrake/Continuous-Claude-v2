@@ -2,235 +2,155 @@
 description: Token-efficient codebase exploration using RepoPrompt - USE FIRST for brownfield projects
 ---
 
-> **Note:** The current year is 2025. This agent creates codebase maps for brownfield projects.
+# RP-Explorer Skill
 
-# RP-Explorer Agent
+Token-efficient codebase exploration using RepoPrompt CLI. Use this for brownfield projects before planning or debugging.
 
-You are a codebase exploration agent that uses RepoPrompt for token-efficient analysis of existing codebases. Your output is a **codebase-map handoff** that other agents (plan-agent, debug-agent) use as context.
+## When to Use
 
-## When to Use This Agent
-
-**Use for BROWNFIELD projects** (existing codebases):
 - Before planning features in an existing codebase
 - Before debugging issues
 - When you need to understand code structure without reading every file
+- When user says "explore", "understand codebase", "how does X work"
 
-**Skip for GREENFIELD projects** (new codebases):
-- Nothing to explore yet
+## CLI Reference
 
-## What You Receive
+### Basic Usage
+```bash
+rp-cli -e '<command>'              # Run single command
+rp-cli -e '<cmd1> && <cmd2>'       # Chain commands
+rp-cli -w <id> -e '<command>'      # Target specific window
+```
 
-1. **Repository path** - The codebase to explore
-2. **Focus area** (optional) - Specific directories or features to prioritize
-3. **Handoff directory** - Where to save your codebase-map
+### Core Commands
 
-## RepoPrompt Commands
+| Command | Aliases | Purpose |
+|---------|---------|---------|
+| `tree` | - | File/folder tree |
+| `structure` | `map` | Code signatures (token-efficient) |
+| `search` | `grep` | Search with context |
+| `read` | `cat` | Read file contents |
+| `select` | `sel` | Manage file selection |
+| `context` | `ctx` | Export workspace context |
+| `builder` | - | AI-powered file selection |
+| `chat` | - | Send to AI chat |
 
-RepoPrompt (`rp`) provides token-efficient codebase exploration:
+### File Tree
+```bash
+rp-cli -e 'tree'                    # Full tree
+rp-cli -e 'tree --folders'          # Folders only
+rp-cli -e 'tree --mode selected'    # Selected files only
+```
+
+### Code Structure (TOKEN EFFICIENT)
+```bash
+rp-cli -e 'structure src/'          # Signatures for path
+rp-cli -e 'structure .'             # Whole project
+rp-cli -e 'structure --scope selected'  # Selected files only
+```
+
+### Search
+```bash
+rp-cli -e 'search "pattern"'
+rp-cli -e 'search "TODO" --extensions .ts,.tsx'
+rp-cli -e 'search "error" --context-lines 3'
+rp-cli -e 'search "function" --max-results 20'
+```
+
+### Read Files
+```bash
+rp-cli -e 'read path/to/file.ts'
+rp-cli -e 'read file.ts --start-line 50 --limit 30'  # Slice
+rp-cli -e 'read file.ts --start-line -20'            # Last 20 lines
+```
+
+### Selection Management
+```bash
+rp-cli -e 'select add src/'         # Add to selection
+rp-cli -e 'select set src/ lib/'    # Replace selection
+rp-cli -e 'select clear'            # Clear selection
+rp-cli -e 'select get'              # View selection
+```
+
+### Context Export
+```bash
+rp-cli -e 'context'                 # Full context
+rp-cli -e 'context --include prompt,selection,tree'
+rp-cli -e 'context --all > output.md'  # Export to file
+```
+
+### AI-Powered Builder
+```bash
+rp-cli -e 'builder "understand auth system"'
+rp-cli -e 'builder "find API endpoints" --response-type plan'
+```
+
+### Chat
+```bash
+rp-cli -e 'chat "How does auth work?"'
+rp-cli -e 'chat "Design new feature" --mode plan'
+```
+
+### Workspaces
+```bash
+rp-cli -e 'workspace list'          # List workspaces
+rp-cli -e 'workspace switch "Name"' # Switch workspace
+rp-cli -e 'workspace tabs'          # List tabs
+```
+
+## Workflow Shorthand Flags
 
 ```bash
-# Generate codemap (structure + signatures)
-rp --codemap /path/to/repo
-
-# Generate codemap for specific directory
-rp --codemap /path/to/repo/src
-
-# Get slice of specific files with full content
-rp --slice /path/to/repo file1.py file2.py
-
-# Combine: codemap + specific file slices
-rp --codemap /path/to/repo --slice file1.py file2.py
+# Quick operations without -e syntax
+rp-cli --workspace MyProject --select-set src/ --export-context ~/out.md
+rp-cli --chat "How does auth work?"
+rp-cli --builder "implement user authentication"
 ```
 
-## Exploration Process
+## Script Files (.rp)
 
-### Step 1: Generate Codemap
+Save repeatable workflows:
 ```bash
-rp --codemap /path/to/repo > codemap.txt
+# export.rp
+workspace switch MyProject
+select set src/
+context --all > output.md
 ```
 
-This gives you:
-- Directory structure
-- Function/class signatures
-- Import relationships
-- WITHOUT full file contents (token-efficient)
+Run with: `rp-cli --exec-file ~/scripts/export.rp`
 
-### Step 2: Identify Key Areas
-From the codemap, identify:
-- Entry points (main.py, index.ts, etc.)
-- Core modules
-- Configuration files
-- Test structure
+## Exploration Workflow
 
-### Step 3: Slice Important Files
+### Step 1: Get Overview
 ```bash
-rp --slice /path/to/repo src/core/main.py src/config.py
+rp-cli -e 'tree'
+rp-cli -e 'structure .'
 ```
 
-Only slice files that are:
-- Entry points
-- Core business logic
-- Configuration
-- Directly relevant to the focus area
-
-### Step 4: Create Codebase Map Handoff
-
-Write to: `thoughts/handoffs/<session>/codebase-map.md`
-
-```markdown
----
-date: [ISO timestamp]
-type: codebase-map
-status: complete
-repository: [repo path]
-focus: [focus area if specified]
----
-
-# Codebase Map: [Project Name]
-
-## Overview
-[1-2 sentences about what this project does]
-
-## Technology Stack
-- **Language:** [Primary language]
-- **Framework:** [Main framework]
-- **Build:** [Build tool/package manager]
-
-## Directory Structure
-```
-[Key directories with purposes]
-src/
-├── core/      # Business logic
-├── api/       # API endpoints
-├── utils/     # Utilities
-tests/
-├── unit/
-├── integration/
+### Step 2: Find Relevant Files
+```bash
+rp-cli -e 'search "auth" --context-lines 2'
+rp-cli -e 'builder "understand authentication"'
 ```
 
-## Entry Points
-- `src/main.py` - Application entry
-- `src/cli.py` - CLI commands
-
-## Core Modules
-
-### [Module Name]
-**Path:** `src/core/module.py`
-**Purpose:** [What it does]
-**Key Functions:**
-- `function_name()` - [Brief description]
-- `ClassName` - [Brief description]
-
-### [Module Name]
-[Repeat for key modules]
-
-## Configuration
-- `config.yaml` - Main config
-- `.env` - Environment variables
-
-## Patterns Observed
-- [Pattern 1 with example location]
-- [Pattern 2 with example location]
-
-## Dependencies / Imports
-[Key internal dependencies between modules]
-
-## For Plan-Agent
-[Specific notes about where new features would fit]
-
-## For Debug-Agent
-[Entry points for tracing issues]
+### Step 3: Deep Dive
+```bash
+rp-cli -e 'select set src/auth/'
+rp-cli -e 'structure --scope selected'
+rp-cli -e 'read src/auth/login.ts'
 ```
 
----
-
-## Returning to Orchestrator
-
-```
-Codebase Map Complete
-
-Repository: [name]
-Handoff: thoughts/handoffs/<session>/codebase-map.md
-
-Structure:
-- [N] main directories
-- [Primary language/framework]
-- Entry point: [main entry]
-
-Key Modules:
-- [Module 1] - [purpose]
-- [Module 2] - [purpose]
-
-Ready for plan-agent or debug-agent.
+### Step 4: Export Context
+```bash
+rp-cli -e 'context --all > codebase-map.md'
 ```
 
----
+## Output
 
-## Important Guidelines
+Create codebase-map at: `thoughts/handoffs/<session>/codebase-map.md`
 
-### DO:
-- Use RepoPrompt for efficiency (codemap before slicing)
-- Focus on structure and signatures first
-- Only slice files that are truly important
-- Note patterns that will help other agents
+## Notes
 
-### DON'T:
-- Read every file (defeats the purpose)
-- Skip the handoff
-- Over-slice (keep it token-efficient)
-
-### Token Efficiency:
-- Codemap: ~10-20% of reading all files
-- Slice only: 5-10 key files max
-- Goal: Understand structure without exhaustive reading
-
----
-
-## Example Invocation
-
-```
-Task(
-  subagent_type="rp-explorer",
-  prompt="""
-  # RP-Explorer Agent
-
-  [This entire SKILL.md content]
-
-  ---
-
-  ## Your Context
-
-  ### Repository Path:
-  /path/to/existing/project
-
-  ### Focus Area:
-  [Optional: "focus on the API layer" or "focus on authentication"]
-
-  ### Handoff Directory:
-  thoughts/handoffs/<session>/
-
-  ---
-
-  Explore the codebase and create your codebase-map handoff.
-  """
-)
-```
-
----
-
-## Brownfield Flow
-
-```
-User: "brownfield - plan feature X"
-  ↓
-Main Claude spawns rp-explorer
-  ↓
-rp-explorer creates: codebase-map.md
-  ↓
-Main Claude spawns plan-agent
-  → Includes codebase-map.md content
-  ↓
-plan-agent creates informed plan
-```
-
-The codebase-map is the bridge between "unknown codebase" and "informed planning".
+- Requires RepoPrompt app with MCP Server enabled
+- Use `rp-cli -d <cmd>` for detailed help on any command
+- Token-efficient: `structure` gives signatures without full content

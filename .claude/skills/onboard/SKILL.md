@@ -27,50 +27,63 @@ rp-cli -e 'tree'
 
 # 2. AI-powered context builder - auto-selects relevant files
 rp-cli -e 'builder "understand the codebase architecture"'
+# Or with shorthand:
+rp-cli --builder "understand the codebase architecture"
 
 # 3. Get code structure (signatures only, token-efficient)
-rp-cli -e 'structure src/'
-# Or for whole project:
 rp-cli -e 'structure .'
 
-# 4. Export full context
-rp-cli -e 'context'
-
-# 5. Search for patterns
+# 4. Search for key patterns
 rp-cli -e 'search "TODO" --max-results 10'
 rp-cli -e 'search "FIXME" --max-results 10'
+rp-cli -e 'search "main\|entry\|app" --max-results 10'
+
+# 5. Export full context
+rp-cli -e 'context --all > /tmp/codebase-context.md'
 ```
 
-**Key RepoPrompt commands:**
+**RepoPrompt CLI Reference:**
+
 | Command | Purpose |
 |---------|---------|
-| `tree` | Directory structure |
-| `structure <path>` | Codemaps (signatures only) |
-| `builder "<task>"` | AI selects relevant files |
-| `context` | Export full context |
-| `search "<pattern>"` | Code search with context |
+| `tree` | Directory structure (`--folders` for dirs only) |
+| `structure <path>` | Code signatures, token-efficient |
+| `builder "<task>"` | AI-powered file selection |
+| `search "pattern"` | Search (`--context-lines`, `--extensions`) |
+| `read <file>` | Read file (`--start-line`, `--limit` for slices) |
+| `select set <paths>` | Set file selection for context |
+| `context` | Export context (`--all` for everything) |
+
+**Workflow shorthand:**
+```bash
+rp-cli --workspace MyProject --select-set src/ --export-context ~/out.md
+```
 
 **Fallback (no RepoPrompt):**
 
 ```bash
 # Project structure
-find . -maxdepth 3 -type f \( -name "*.md" -o -name "package.json" -o -name "pyproject.toml" -o -name "Cargo.toml" -o -name "go.mod" -o -name "Gemfile" -o -name "*.csproj" \) 2>/dev/null | head -20
+find . -maxdepth 3 -type f \( -name "*.md" -o -name "package.json" -o -name "pyproject.toml" -o -name "Cargo.toml" -o -name "go.mod" \) 2>/dev/null | head -20
 
 # Key directories
 ls -la src/ app/ lib/ packages/ 2>/dev/null | head -30
 
 # README content
 head -100 README.md 2>/dev/null
+
+# Search for entry points
+grep -r "main\|entry" --include="*.json" . 2>/dev/null | head -10
 ```
 
 ### Step 3: Detect Tech Stack
 
 Look for and summarize:
 - **Language**: package.json (JS/TS), pyproject.toml (Python), Cargo.toml (Rust), go.mod (Go)
-- **Framework**: Next.js, Django, Rails, etc.
+- **Framework**: Next.js, Django, Rails, FastAPI, etc.
 - **Database**: prisma/, migrations/, .env references
 - **Testing**: jest.config, pytest.ini, test directories
 - **CI/CD**: .github/workflows/, .gitlab-ci.yml
+- **Build**: webpack, vite, esbuild, turbo
 
 ### Step 4: Ask User for Goal
 
@@ -109,6 +122,8 @@ Updated: <timestamp>
 ## Constraints
 - Tech Stack: <detected>
 - Framework: <detected>
+- Build: <detected build command>
+- Test: <detected test command>
 - Patterns: <from CONTRIBUTING.md or user input>
 
 ## Key Decisions
@@ -120,11 +135,15 @@ Updated: <timestamp>
 
 ## Working Set
 - Key files: <detected entry points>
-- Test command: <detected>
-- Build command: <detected>
+- Test command: <detected, e.g., npm test, pytest>
+- Build command: <detected, e.g., npm run build>
+- Dev command: <detected, e.g., npm run dev>
 
 ## Open Questions
 - UNCONFIRMED: <any uncertainties from analysis>
+
+## Codebase Summary
+<Brief summary from rp-cli builder or manual exploration>
 ```
 
 ### Step 6: Confirm with User
@@ -145,3 +164,4 @@ Show the generated ledger and ask:
 - For greenfield, use `/create_plan` instead
 - Ledger can be updated anytime with `/continuity_ledger`
 - RepoPrompt requires the app running with MCP Server enabled
+- Use `rp-cli -d <cmd>` for detailed help on any command
