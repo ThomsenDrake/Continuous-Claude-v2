@@ -24,28 +24,26 @@ If thoughts/ doesn't exist, tell the user to run `init-project.sh` and stop.
 **Try RepoPrompt first (preferred):**
 
 ```bash
-# Check if rp-cli is available
+# 1. Check if rp-cli is available
 which rp-cli
 
-# ALWAYS set workspace to current project first:
-echo "Project: $CLAUDE_PROJECT_DIR"
+# 2. List workspaces - check if this project exists
 rp-cli -e 'workspace list'
-rp-cli -e "workspace switch \"$CLAUDE_PROJECT_DIR\""
-# If that fails (path not exact match), try by name:
-rp-cli -e "workspace switch \"$(basename "$CLAUDE_PROJECT_DIR")\""
 
-# Now explore:
+# 3. If workspace doesn't exist, create it and add folder:
+rp-cli -e 'workspace create --name "project-name"'
+rp-cli -e 'call manage_workspaces {"action": "add_folder", "workspace": "project-name", "folder_path": "/full/path/to/project"}'
+
+# 4. Switch to the workspace (by name)
+rp-cli -e 'workspace switch "project-name"'
+
+# 5. Explore the codebase
 rp-cli -e 'tree'
 rp-cli -e 'structure .'
 rp-cli -e 'builder "understand the codebase architecture"'
 ```
 
-**Why workspace switching is safe:**
-- Each `builder` command creates a NEW window in RepoPrompt
-- Multiple Claude instances can use the same workspace
-- What matters is the directory is correct before running commands
-
-**Multiple builders are fine:** Each one opens a new window, so run as many as you need.
+**Important:** `workspace switch` takes a NAME or UUID, not a path.
 
 **Fallback (no RepoPrompt):**
 

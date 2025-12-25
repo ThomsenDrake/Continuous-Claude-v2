@@ -13,21 +13,18 @@ You are a specialized exploration agent that uses RepoPrompt for **token-efficie
 **Always run this first** to ensure RepoPrompt points to the correct project:
 
 ```bash
-# 1. Get current project directory
-echo "Project: $CLAUDE_PROJECT_DIR"
-
-# 2. Check current workspace
+# 1. List workspaces - check if this project exists
 rp-cli -e 'workspace list'
 
-# 3. Switch to current project if not already active
-rp-cli -e "workspace switch \"$CLAUDE_PROJECT_DIR\""
-# If that fails (path not exact match), try:
-rp-cli -e "workspace switch \"$(basename "$CLAUDE_PROJECT_DIR")\""
+# 2. If workspace doesn't exist, create it and add folder:
+rp-cli -e 'workspace create --name "project-name"'
+rp-cli -e 'call manage_workspaces {"action": "add_folder", "workspace": "project-name", "folder_path": "/full/path/to/project"}'
+
+# 3. Switch to the workspace (by name)
+rp-cli -e 'workspace switch "project-name"'
 ```
 
-**Why this matters:** RepoPrompt workspace is shared state. If another Claude instance changed it, you'll get wrong data. Always verify and switch first.
-
-**Multiple builders are fine:** Each `builder` command opens a new window, so you can run multiple in one session.
+**Important:** `workspace switch` takes a NAME or UUID, not a path.
 
 ## CLI Quick Reference
 
