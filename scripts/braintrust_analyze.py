@@ -1148,9 +1148,83 @@ async def learn_from_session(project_id: str, api_key: str, session_id: str | No
     MIN_PER_FIELD = 1500
     MAX_PER_FIELD = 8000
 
-    # Estimate ~1.5 fields per span (some have input+output, some just input)
+    # --- IMPORTANCE-BASED SPAN SELECTION ---
+    # Score spans by signal value, keep highest-importance within budget
+
+    def score_span(span: dict) -> int:
+        """Score span by importance. Higher = more signal."""
+        span_attrs = span.get("span_attributes") or {}
+        metadata = span.get("metadata") or {}
+        span_type = span_attrs.get("type", "unknown")
+        tool_name = metadata.get("tool_name", "")
+
+        # Errors are always highest priority
+        if span.get("error") or span.get("status") == "error":
+            return 100
+
+        # Mutations and agent spawns
+        if tool_name in ["Write", "Edit", "Bash", "Task", "NotebookEdit"]:
+            return 80
+
+        # LLM decisions
+        if span_type == "llm":
+            return 70
+
+        # Skills and agent outputs
+        if metadata.get("skill_name") or metadata.get("agent_type"):
+            return 65
+
+        # Other tools (moderate value)
+        if span_type == "tool":
+            # Read-only tools are lower value
+            if tool_name in ["Read", "Glob", "Grep", "LSP", "WebFetch", "WebSearch"]:
+                return 30
+            return 50
+
+        # Task spans (user messages)
+        if span_type == "task":
+            return 60
+
+        return 40  # Default
+
+    # Always keep first N and last M spans (setup + resolution)
+    KEEP_FIRST = 10
+    KEEP_LAST = 20
     span_count = len(spans)
-    estimated_fields = int(span_count * 1.5)
+
+    if span_count <= KEEP_FIRST + KEEP_LAST:
+        # Small session, keep all
+        selected_spans = list(enumerate(spans, 1))
+    else:
+        # Score middle spans and select by importance
+        first_spans = [(i, spans[i-1]) for i in range(1, KEEP_FIRST + 1)]
+        last_spans = [(i, spans[i-1]) for i in range(span_count - KEEP_LAST + 1, span_count + 1)]
+        middle_spans = [(i, spans[i-1]) for i in range(KEEP_FIRST + 1, span_count - KEEP_LAST + 1)]
+
+        # Score and sort middle spans
+        scored_middle = [(i, s, score_span(s)) for i, s in middle_spans]
+        scored_middle.sort(key=lambda x: x[2], reverse=True)
+
+        # Calculate how many middle spans we can afford
+        # Budget: ~2500 chars per span average
+        CHARS_PER_SPAN = 2500
+        total_span_budget = AVAILABLE_CHARS // CHARS_PER_SPAN
+        middle_budget = max(0, total_span_budget - KEEP_FIRST - KEEP_LAST)
+
+        # Take top-scoring middle spans
+        selected_middle = [(i, s) for i, s, _ in scored_middle[:middle_budget]]
+
+        # Combine and sort by original order
+        selected_spans = first_spans + selected_middle + last_spans
+        selected_spans.sort(key=lambda x: x[0])
+
+        skipped = len(middle_spans) - len(selected_middle)
+        if skipped > 0:
+            print(f"  Importance sampling: kept {len(selected_spans)}/{span_count} spans (skipped {skipped} low-value)")
+
+    # Calculate per-field budget based on selected spans
+    selected_count = len(selected_spans)
+    estimated_fields = int(selected_count * 2.5)
     per_field_budget = AVAILABLE_CHARS // max(1, estimated_fields)
     per_field_budget = max(MIN_PER_FIELD, min(MAX_PER_FIELD, per_field_budget))
 
@@ -1163,9 +1237,9 @@ async def learn_from_session(project_id: str, api_key: str, session_id: str | No
             return text[:max_len] + f"... [truncated {len(text) - max_len} chars]"
         return text
 
-    print(f"  Spans: {span_count}, budget: {per_field_budget} chars/field")
+    print(f"  Selected spans: {selected_count}, budget: {per_field_budget} chars/field")
 
-    for i, s in enumerate(spans, 1):
+    for i, s in selected_spans:
         span_attrs = s.get("span_attributes") or {}
         metadata = s.get("metadata") or {}
         span_type = span_attrs.get("type", "unknown")
@@ -1212,6 +1286,19 @@ async def learn_from_session(project_id: str, api_key: str, session_id: str | No
         full_session_context = hierarchical_context + "\n" + formatted_trace
     else:
         full_session_context = formatted_trace
+
+    # CRITICAL: Final length check - truncate if over budget
+    # This catches the case where per-field budget * actual fields exceeds total budget
+    MAX_CONTEXT_CHARS = TOTAL_CHARS - RESERVE_CHARS
+    if len(full_session_context) > MAX_CONTEXT_CHARS:
+        # Preserve hierarchical context (high value), truncate traces
+        if hierarchical_context:
+            max_trace_chars = MAX_CONTEXT_CHARS - hierarchical_chars - 100  # buffer
+            formatted_trace = formatted_trace[:max_trace_chars] + "\n\n[... trace truncated for length ...]"
+            full_session_context = hierarchical_context + "\n" + formatted_trace
+        else:
+            full_session_context = full_session_context[:MAX_CONTEXT_CHARS] + "\n\n[... truncated for length ...]"
+        print(f"  WARNING: Context truncated from {len(formatted_trace):,} to {MAX_CONTEXT_CHARS:,} chars")
 
     # Pass to LLM judge for learning extraction
     print(f"Extracting learnings from session {session_id}...")
