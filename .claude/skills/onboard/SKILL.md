@@ -19,11 +19,38 @@ ls thoughts/ledgers/ 2>/dev/null || echo "Run init-project.sh first"
 
 ### Step 2: Codebase Analysis
 
-**If repoprompt available (preferred):**
-Use rp-explorer agent for token-efficient codebase mapping.
+**If RepoPrompt available (preferred):**
 
-**Fallback (no repoprompt):**
-Analyze manually:
+```bash
+# 1. Get directory tree
+rp-cli -e 'tree'
+
+# 2. AI-powered context builder - auto-selects relevant files
+rp-cli -e 'builder "understand the codebase architecture"'
+
+# 3. Get code structure (signatures only, token-efficient)
+rp-cli -e 'structure src/'
+# Or for whole project:
+rp-cli -e 'structure .'
+
+# 4. Export full context
+rp-cli -e 'context'
+
+# 5. Search for patterns
+rp-cli -e 'search "TODO" --max-results 10'
+rp-cli -e 'search "FIXME" --max-results 10'
+```
+
+**Key RepoPrompt commands:**
+| Command | Purpose |
+|---------|---------|
+| `tree` | Directory structure |
+| `structure <path>` | Codemaps (signatures only) |
+| `builder "<task>"` | AI selects relevant files |
+| `context` | Export full context |
+| `search "<pattern>"` | Code search with context |
+
+**Fallback (no RepoPrompt):**
 
 ```bash
 # Project structure
@@ -117,3 +144,4 @@ Show the generated ledger and ask:
 - This skill is for BROWNFIELD projects (existing code)
 - For greenfield, use `/create_plan` instead
 - Ledger can be updated anytime with `/continuity_ledger`
+- RepoPrompt requires the app running with MCP Server enabled
