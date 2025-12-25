@@ -388,7 +388,7 @@
             "type": "domain",
             "enforcement": "suggest",
             "priority": "medium",
-            "description": "Search past reasoning for relevant decisions and approaches",
+            "description": "Search past work (Artifact Index + reasoning files) for decisions and approaches",
             "promptTriggers": {
                 "keywords": [
                     "recall",
@@ -399,13 +399,23 @@
                     "past decisions",
                     "similar problem",
                     "tried before",
-                    "done before"
+                    "done before",
+                    "last time",
+                    "precedent",
+                    "what worked",
+                    "what failed",
+                    "past work",
+                    "similar work",
+                    "search handoffs",
+                    "artifact index"
                 ],
                 "intentPatterns": [
-                    "(recall|search|find).*?(reasoning|attempts|decisions)",
-                    "(what|how).*?(tried|done).*?before",
-                    "(similar|past).*?(problem|issue|approach)",
-                    "(previous|past).*?(attempts|work|reasoning)"
+                    "(recall|search|find).*?(reasoning|attempts|decisions|precedent|handoffs)",
+                    "(what|how).*?(tried|done|worked|failed).*?before",
+                    "(similar|past).*?(problem|issue|approach|work|session)",
+                    "(previous|past|last).*?(attempts|work|reasoning|time)",
+                    "what did we do.*?(with|for|last)",
+                    "(find|search).*?(past|previous).*?(work|sessions)"
                 ]
             }
         },

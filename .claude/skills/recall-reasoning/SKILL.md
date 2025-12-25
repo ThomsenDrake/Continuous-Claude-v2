@@ -2,64 +2,95 @@
 description: Search past reasoning for relevant decisions and approaches
 ---
 
-# Recall Past Reasoning
+# Recall Past Work
 
-Search through previous development sessions to find relevant decisions, approaches that worked, and approaches that failed.
+Search through previous sessions to find relevant decisions, approaches that worked, and approaches that failed. Queries two sources:
 
-## When to use
+1. **Artifact Index** - Handoffs, plans, ledgers with post-mortems (what worked/failed)
+2. **Reasoning Files** - Build attempts, test failures, commit context
 
-- Starting a new feature that's similar to past work
-- Investigating why something was done a certain way
+## When to Use
+
+- Starting work similar to past sessions
+- "What did we do last time with X?"
 - Looking for patterns that worked before
-- Debugging an issue that might have been encountered previously
+- Investigating why something was done a certain way
+- Debugging an issue encountered previously
 
 ## Usage
+
+### Primary: Artifact Index (rich context)
+
+```bash
+uv run python scripts/artifact_query.py "<query>" [--outcome SUCCEEDED|FAILED] [--limit N]
+```
+
+This searches handoffs with post-mortems (what worked, what failed, key decisions).
+
+### Secondary: Reasoning Files (build attempts)
 
 ```bash
 bash .claude/scripts/search-reasoning.sh "<query>"
 ```
 
+This searches `.git/claude/commits/*/reasoning.md` for build failures and fixes.
+
 ## Examples
 
 ```bash
-# Search for rate limiting related reasoning
-bash .claude/scripts/search-reasoning.sh "rate limiting"
+# Search for authentication-related work
+uv run python scripts/artifact_query.py "authentication OAuth JWT"
 
-# Search for authentication decisions
-bash .claude/scripts/search-reasoning.sh "authentication"
+# Find only successful approaches
+uv run python scripts/artifact_query.py "implement agent" --outcome SUCCEEDED
 
-# Search for build failures
-bash .claude/scripts/search-reasoning.sh "build fail"
+# Find what failed (to avoid repeating mistakes)
+uv run python scripts/artifact_query.py "hook implementation" --outcome FAILED
 
-# Search for specific error types
+# Search build/test reasoning
 bash .claude/scripts/search-reasoning.sh "TypeError"
 ```
 
-## What gets searched
+## What Gets Searched
 
-The search looks through reasoning files which contain:
-- **Failed build attempts** - Commands that failed and their error output
-- **Successful builds** - What finally worked after failures
-- **Commit context** - What was being worked on when attempts were made
-- **Branch information** - Which feature branch the work was done on
+**Artifact Index** (handoffs, plans, ledgers):
+- Task summaries and status
+- **What worked** - Successful approaches
+- **What failed** - Dead ends and why
+- **Key decisions** - Choices with rationale
+- Goal and constraints from ledgers
 
-## How to interpret results
+**Reasoning Files** (`.git/claude/`):
+- Failed build attempts and error output
+- Successful builds after failures
+- Commit context and branch info
 
-- `build_fail` entries show approaches that didn't work
-- `build_pass` shows what finally succeeded
-- The context helps understand why certain decisions were made
-- Multiple failures before success indicate the problem was non-trivial
+## Interpreting Results
 
-## How reasoning is captured
+**From Artifact Index:**
+- `✓` = SUCCEEDED outcome (pattern to follow)
+- `✗` = FAILED outcome (pattern to avoid)
+- `?` = UNKNOWN outcome (not yet marked)
+- Post-mortem sections show distilled learnings
 
-1. PostToolUse hook captures build/test command results
-2. Results stored in `.git/claude/branches/<branch>/attempts.jsonl`
-3. When `/commit` runs, it generates `.git/claude/commits/<hash>/reasoning.md`
-4. This skill searches across all reasoning files
+**From Reasoning:**
+- `build_fail` = approach that didn't work
+- `build_pass` = what finally succeeded
+- Multiple failures before success = non-trivial problem
 
-## No results?
+## Process
 
-If no reasoning files are found:
-- Reasoning tracking may not have been enabled for older commits
-- Try running builds with `/commit` to start capturing reasoning
+1. **Run Artifact Index query first** - richer context, post-mortems
+2. **Review relevant handoffs** - check what worked/failed sections
+3. **If needed, search reasoning** - for specific build errors
+4. **Apply learnings** - follow successful patterns, avoid failed ones
+
+## No Results?
+
+**Artifact Index empty:**
+- Run `uv run python scripts/artifact_index.py --all` to index existing handoffs
+- Create handoffs with post-mortem sections for future recall
+
+**Reasoning files empty:**
+- Use `/commit` after builds to capture reasoning
 - Check if `.git/claude/` directory exists
