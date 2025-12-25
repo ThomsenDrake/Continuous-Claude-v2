@@ -30,14 +30,12 @@ If thoughts/ doesn't exist, tell the user to run `init-project.sh` and stop.
 # Check if rp-cli is available
 which rp-cli
 
-# If available, first check/set workspace to current project:
+# ALWAYS set workspace to current project first:
+echo "Project: $CLAUDE_PROJECT_DIR"
 rp-cli -e 'workspace list'
-
-# If current project is not the active workspace, switch to it:
-# Use the project directory name or path
-rp-cli --workspace "$CLAUDE_PROJECT_DIR" -e 'tree'
-# Or if workspace exists by name:
-rp-cli -e 'workspace switch "<project-name>"'
+rp-cli -e "workspace switch \"$CLAUDE_PROJECT_DIR\""
+# If that fails (path not exact match), try by name:
+rp-cli -e "workspace switch \"$(basename "$CLAUDE_PROJECT_DIR")\""
 
 # Now explore:
 rp-cli -e 'tree'
@@ -45,33 +43,12 @@ rp-cli -e 'structure .'
 rp-cli -e 'builder "understand the codebase architecture"'
 ```
 
-**Workspace handling (IMPORTANT):**
+**Why workspace switching is safe:**
+- Each `builder` command creates a NEW window in RepoPrompt
+- Multiple Claude instances can use the same workspace
+- What matters is the directory is correct before running commands
 
-RepoPrompt workspaces are shared state. Switching affects ALL Claude instances.
-
-**Safe pattern:**
-```bash
-# 1. Check current workspace first
-rp-cli -e 'workspace list'
-
-# 2. If already on correct project, just use it
-rp-cli -e 'tree'
-
-# 3. If on wrong project, DON'T switch - fall back to bash
-# Switching could disrupt another Claude instance's work
-```
-
-**If you must switch (user has only one instance):**
-```bash
-# Use window targeting to be explicit
-rp-cli -e 'windows'              # List windows
-rp-cli -w 1 -e 'workspace switch "<project>"'  # Target window 1
-```
-
-**When to fall back to bash:**
-- Workspace doesn't match and you're unsure about other instances
-- Project isn't in RepoPrompt at all
-- rp-cli commands fail
+**Multiple builders are fine:** Each one opens a new window, so run as many as you need.
 
 **Fallback (no RepoPrompt):**
 

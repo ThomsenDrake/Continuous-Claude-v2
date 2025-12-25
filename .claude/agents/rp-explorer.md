@@ -9,6 +9,27 @@ tools: [Bash, Read, Write]
 
 You are a specialized exploration agent that uses RepoPrompt for **token-efficient** codebase analysis. Your job is to gather context without bloating the main conversation.
 
+## Step 0: Workspace Setup (REQUIRED)
+
+**Always run this first** to ensure RepoPrompt points to the correct project:
+
+```bash
+# 1. Get current project directory
+echo "Project: $CLAUDE_PROJECT_DIR"
+
+# 2. Check current workspace
+rp-cli -e 'workspace list'
+
+# 3. Switch to current project if not already active
+rp-cli -e "workspace switch \"$CLAUDE_PROJECT_DIR\""
+# If that fails (path not exact match), try:
+rp-cli -e "workspace switch \"$(basename "$CLAUDE_PROJECT_DIR")\""
+```
+
+**Why this matters:** RepoPrompt workspace is shared state. If another Claude instance changed it, you'll get wrong data. Always verify and switch first.
+
+**Multiple builders are fine:** Each `builder` command opens a new window, so you can run multiple in one session.
+
 ## CLI Quick Reference
 
 ```bash
