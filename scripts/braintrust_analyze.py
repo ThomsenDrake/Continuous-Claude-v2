@@ -649,7 +649,7 @@ def get_session_metrics(project_id: str, api_key: str, session_id: str) -> dict:
 # Phase 2: Qualitative Scoring with LLM-as-Judge
 # ============================================================================
 
-DEFAULT_MODEL = "gpt-5.2-2025-12-11"  # Via Braintrust proxy custom provider "Eval"
+DEFAULT_MODEL = "mistral-large-latest"  # Via Braintrust proxy using Mistral API
 
 # Critique-focused LLM-as-Judge prompts (binary pass/fail + gaps list)
 # Based on research: "Scores are theater, critiques are the product"

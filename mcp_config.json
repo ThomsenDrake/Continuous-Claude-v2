@@ -16,7 +16,7 @@
       "headers": {
         "Authorization": "Bearer ${GITHUB_PERSONAL_ACCESS_TOKEN}"
       },
-      "disabled": true
+      "disabled": false
     },
     "firecrawl": {
       "type": "stdio",
@@ -25,7 +25,7 @@
       "env": {
         "FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}"
       },
-      "disabled": true
+      "disabled": false
     },
     "morph": {
       "type": "stdio",
@@ -42,7 +42,7 @@
       "env": {
         "PERPLEXITY_API_KEY": "${PERPLEXITY_API_KEY}"
       },
-      "disabled": true
+      "disabled": false
     },
     "nia": {
       "type": "stdio",
@@ -52,19 +52,19 @@
         "NIA_API_KEY": "${NIA_API_KEY}",
         "NIA_API_URL": "https://apigcp.trynia.ai/"
       },
-      "disabled": true
+      "disabled": false
     },
     "ast-grep": {
       "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@anthropic/mcp-ast-grep"],
-      "disabled": true
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/ast-grep/ast-grep-mcp", "ast-grep-server"],
+      "disabled": false
     },
     "repoprompt": {
       "type": "stdio",
-      "command": "repoprompt_cli",
-      "args": [],
-      "disabled": true
+      "command": "rp-cli",
+      "args": ["--mcp"],
+      "disabled": false
     },
     "qlty": {
       "type": "stdio",
